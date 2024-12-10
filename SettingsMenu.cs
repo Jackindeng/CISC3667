@@ -1,67 +1,115 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
+using UnityEngine.SceneManagement;
 
-public class SettingsMenu : MonoBehaviour
+public class SettingsManager : MonoBehaviour
 {
     [Header("UI Components")]
-    public Slider volumeSlider;         // 音量控制滑块
-    public Dropdown difficultyDropdown; // 难度选择下拉菜单
-    public Toggle musicToggle;          // 背景音乐开关
+    public Slider volumeSlider;           // 音量滑块
+    public TMP_Dropdown difficultyDropdown; // 难度选择下拉框
+    public Toggle musicToggle;            // 背景音乐开关
+    public Button returnToMainMenuButton; // 返回主菜单按钮
 
-    private AudioSource bgMusicSource;  // 背景音乐的AudioSource
+    [Header("Audio")]
+    public AudioSource backgroundMusic; // 背景音乐音频源
 
-    void Start()
+    [Header("Difficulty Settings")]
+    public DifficultySettings[] difficultySettings; // 不同难度的配置
+    public static DifficultySettings CurrentDifficulty; // 当前难度设置
+
+    private void Start()
     {
-        // 初始化音量滑块
-        volumeSlider.value = AudioListener.volume; // 将滑块值设为当前的全局音量
-        volumeSlider.onValueChanged.AddListener(SetVolume); // 监听音量滑块的值变化
 
-        // 初始化难度下拉菜单
+        InitializeSettings(); // 初始化设置
+
+        // 绑定事件监听
+        volumeSlider.onValueChanged.AddListener(SetVolume);
         difficultyDropdown.onValueChanged.AddListener(SetDifficulty);
-        difficultyDropdown.value = PlayerPrefs.GetInt("Difficulty", 1); // 加载保存的难度（默认为中等）
+        musicToggle.onValueChanged.AddListener(ToggleMusic);
+        returnToMainMenuButton.onClick.AddListener(ReturnToMainMenu);
+    }
+
+
+
+    /// <summary>
+    /// 初始化设置
+    /// </summary>
+    private void InitializeSettings()
+    {
+        // 初始化音量
+        float savedVolume = PlayerPrefs.GetFloat("Volume", 1f);
+        volumeSlider.value = savedVolume;
+        AudioListener.volume = savedVolume;
+
+        // 初始化难度
+        int savedDifficulty = PlayerPrefs.GetInt("Difficulty", 1);
+        difficultyDropdown.value = savedDifficulty;
+        ApplyDifficulty(savedDifficulty);
 
         // 初始化背景音乐开关
-        musicToggle.onValueChanged.AddListener(ToggleMusic);
-        bgMusicSource = Object.FindFirstObjectByType<AudioSource>(); // 查找场景中的AudioSource组件
-        if (bgMusicSource != null)
+        bool isMusicOn = PlayerPrefs.GetInt("MusicEnabled", 1) == 1;
+        musicToggle.isOn = isMusicOn;
+        if (backgroundMusic != null)
         {
-            musicToggle.isOn = !bgMusicSource.mute; // 设置开关状态为当前背景音乐的静音状态
+            backgroundMusic.mute = !isMusicOn;
         }
     }
 
-    // 设置全局音量
-    public void SetVolume(float value)
+    /// <summary>
+    /// 设置音量
+    /// </summary>
+    /// <param name="volume">音量值</param>
+    public void SetVolume(float volume)
     {
-        AudioListener.volume = value; // 设置全局音量
+        AudioListener.volume = volume;
+        PlayerPrefs.SetFloat("Volume", volume);
+        Debug.Log($"Volume set to: {volume}");
     }
 
-    // 设置游戏难度
-    public void SetDifficulty(int index)
+    /// <summary>
+    /// 设置游戏难度
+    /// </summary>
+    /// <param name="difficultyIndex">难度索引</param>
+    public void SetDifficulty(int difficultyIndex)
     {
-        PlayerPrefs.SetInt("Difficulty", index); // 保存选择的难度
-        Debug.Log("Difficulty set to: " + index);
+        PlayerPrefs.SetInt("Difficulty", difficultyIndex);
+        ApplyDifficulty(difficultyIndex);
+        Debug.Log($"Difficulty set to: {difficultySettings[difficultyIndex].name}");
+    }
 
-        // 使用此难度值控制游戏难度（可根据游戏需求调整）
-        switch (index)
+    /// <summary>
+    /// 应用游戏难度
+    /// </summary>
+    /// <param name="difficultyIndex">难度索引</param>
+    private void ApplyDifficulty(int difficultyIndex)
+    {
+        if (difficultyIndex >= 0 && difficultyIndex < difficultySettings.Length)
         {
-            case 0:
-                // 简单难度设置，例如减少敌人数量或降低速度
-                break;
-            case 1:
-                // 中等难度
-                break;
-            case 2:
-                // 困难难度设置，例如增加敌人数量或提高速度
-                break;
+            CurrentDifficulty = difficultySettings[difficultyIndex];
+            Debug.Log($"Applied difficulty: {CurrentDifficulty.name}");
         }
     }
 
-    // 控制背景音乐的开关
-    public void ToggleMusic(bool isOn)
+    /// <summary>
+    /// 切换背景音乐
+    /// </summary>
+    /// <param name="isEnabled">背景音乐是否开启</param>
+    public void ToggleMusic(bool isEnabled)
     {
-        if (bgMusicSource != null)
+        if (backgroundMusic != null)
         {
-            bgMusicSource.mute = !isOn; // 根据开关状态设置背景音乐的静音
+            backgroundMusic.mute = !isEnabled;
         }
+        PlayerPrefs.SetInt("MusicEnabled", isEnabled ? 1 : 0);
+        Debug.Log($"Music enabled: {isEnabled}");
+    }
+
+    /// <summary>
+    /// 返回主菜单
+    /// </summary>
+    public void ReturnToMainMenu()
+    {
+        SceneManager.LoadScene("MainMenu"); // 替换为你的主菜单场景名称
     }
 }

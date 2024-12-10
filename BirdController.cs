@@ -71,7 +71,7 @@ public class BirdController : MonoBehaviour
     void OnTriggerEnter2D(Collider2D other)
     {
         // 检查是否与图钉碰撞
-        if (other.CompareTag("Pin"))
+        if (other.CompareTag("Projectile"))
         {
             // 作为障碍物，销毁图钉
             Destroy(other.gameObject);

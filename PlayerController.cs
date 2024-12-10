@@ -2,80 +2,36 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    public GameObject pinPrefab;     // 图钉预制体
-    public Transform pinSpawnPoint;  // 图钉生成位置
-    public float speed = 5f;         // 控制移动速度
-    public float minX = -8f;         // 背景左边界
-    public float maxX = 8f;          // 背景右边界
-    public float minY = -4f;         // 背景下边界
-    public float maxY = 4f;          // 背景上边界
+    public float speed = 5f; // 角色移动速度
+    public Vector2 minBounds; // 背景的最小范围
+    public Vector2 maxBounds; // 背景的最大范围
 
-    private Rigidbody2D rb;
-    private bool isFacingRight = true;
-
-    void Start()
-    {
-        rb = GetComponent<Rigidbody2D>();
-    }
+    private Vector3 movement; // 临时存储移动向量
 
     void Update()
     {
-        HandleMovement();
-
-        // 检查Fire1输入（默认为Ctrl键）
-        if (Input.GetButtonDown("Fire1"))
-        {
-            ShootPin();
-        }
-    }
-
-    void HandleMovement()
-    {
-        // 获取水平和垂直输入
-        float horizontalInput = Input.GetAxis("Horizontal");
-        float verticalInput = Input.GetAxis("Vertical");
+        // 获取玩家输入
+        float moveX = Input.GetAxis("Horizontal") * speed * Time.deltaTime;
+        float moveY = Input.GetAxis("Vertical") * speed * Time.deltaTime;
 
         // 计算新的位置
-        Vector2 newPosition = rb.position + new Vector2(horizontalInput * speed * Time.deltaTime, verticalInput * speed * Time.deltaTime);
+        movement = transform.position + new Vector3(moveX, moveY, 0);
 
-        // 限制角色在背景范围内移动
-        newPosition.x = Mathf.Clamp(newPosition.x, minX, maxX);
-        newPosition.y = Mathf.Clamp(newPosition.y, minY, maxY);
+        // 限制角色在背景范围内
+        movement.x = Mathf.Clamp(movement.x, minBounds.x, maxBounds.x);
+        movement.y = Mathf.Clamp(movement.y, minBounds.y, maxBounds.y);
 
         // 更新角色位置
-        rb.MovePosition(newPosition);
-
-        // 翻转角色以朝向移动方向
-        if (horizontalInput > 0 && !isFacingRight)
-        {
-            Flip();
-        }
-        else if (horizontalInput < 0 && isFacingRight)
-        {
-            Flip();
-        }
+        transform.position = movement;
     }
 
-    void ShootPin()
+    // 可视化边界范围（仅在编辑模式下显示）
+    private void OnDrawGizmos()
     {
-        Vector3 spawnPosition = pinSpawnPoint != null ? pinSpawnPoint.position : transform.position;
-
-        // 在玩家当前位置或指定的生成点位置实例化图钉
-        GameObject pin = Instantiate(pinPrefab, spawnPosition, Quaternion.identity);
-
-        // 启用图钉的移动脚本
-        PinMovement pinMovement = pin.GetComponent<PinMovement>();
-        if (pinMovement != null)
-        {
-            pinMovement.enabled = true;
-        }
-    }
-
-    void Flip()
-    {
-        isFacingRight = !isFacingRight;
-        Vector3 scale = transform.localScale;
-        scale.x *= -1;
-        transform.localScale = scale;
+        Gizmos.color = Color.red;
+        Gizmos.DrawLine(new Vector3(minBounds.x, minBounds.y, 0), new Vector3(minBounds.x, maxBounds.y, 0));
+        Gizmos.DrawLine(new Vector3(maxBounds.x, minBounds.y, 0), new Vector3(maxBounds.x, maxBounds.y, 0));
+        Gizmos.DrawLine(new Vector3(minBounds.x, minBounds.y, 0), new Vector3(maxBounds.x, minBounds.y, 0));
+        Gizmos.DrawLine(new Vector3(minBounds.x, maxBounds.y, 0), new Vector3(maxBounds.x, maxBounds.y, 0));
     }
 }
